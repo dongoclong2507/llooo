@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOOL MAKE CODE CACHE - HITBOX</title>
+<style>
+    :root {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --panel-hover: #1c2128;
+        --border: #30363d;
+        --text: #c9d1d9;
+        --text-dim: #8b949e;
+        --red: #f85149;
+        --yellow: #d29922;
+        --green: #3fb950;
+        --bar-bg: #21262d;
+        --blue: #58a6ff;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); margin: 0; padding: 16px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; padding-bottom: 50px; }
+    
+    /* Header */
+    .header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .icon { width: 44px; height: 44px; background: linear-gradient(135deg, var(--blue), #1f6feb); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: #fff; }
+    .title h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
+    .title p { margin: 4px 0 0; font-size: 12px; color: var(--text-dim); }
+    .badge-limit { display: inline-block; border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 11px; color: var(--text-dim); }
+
+    /* Import File */
+    .import-panel { background: var(--panel); border: 1px dashed var(--border); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .import-panel:hover { background: var(--panel-hover); border-color: var(--blue); }
+    .import-panel.dragover { border-color: var(--blue); background: rgba(88, 166, 255, 0.1); }
+    .import-icon { font-size: 24px; margin-bottom: 8px; }
+    .import-text { font-size: 13px; font-weight: 600; color: var(--blue); }
+    .import-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+    #fileInput { display: none; }
+    .file-name { font-size: 12px; color: var(--green); margin-top: 8px; word-break: break-all; }
+
+    /* Preview Area */
+    .preview-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+    .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .preview-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .preview-box { position: relative; height: 260px; display: flex; justify-content: center; align-items: center; background: #0d1117; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+    
+    /* Character Wrapper */
+    .char-wrapper { position: relative; width: 160px; height: 240px; }
+    .char-svg { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+    
+    /* Hitboxes */
+    .hitbox { position: absolute; pointer-events: none; transition: all 0.1s ease-out; }
+    .hb-red { border: 2px dashed var(--red); width: 56px; height: 56px; top: 10px; left: 52px; border-radius: 50%; display: flex; justify-content: center; align-items: flex-start; }
+    .hb-yellow { border: 2px dashed var(--yellow); width: 74px; height: 90px; top: 76px; left: 43px; border-radius: 40%; }
+    .hb-label { position: absolute; top: -16px; font-size: 9px; font-weight: bold; background: #0d1117; padding: 0 4px; }
+
+    /* Controls */
+    .control-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .control-box.red-box { border-color: rgba(248,81,73,0.4); }
+    .control-box.yellow-box { border-color: rgba(210,153,34,0.4); }
+    
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .header-left { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 14px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.red { background: var(--red); }
+    .dot.yellow { background: var(--yellow); }
+    
+    .status-badge { font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: bold; border: 1px solid; }
+    .badge-danger { color: var(--red); border-color: var(--red); background: rgba(248,81,73,0.1); }
+    .badge-safe { color: var(--green); border-color: var(--green); background: rgba(63,185,80,0.1); }
+    .btn-reset { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .btn-reset:hover { background: var(--border); }
+    
+    /* Progress Bar */
+    .bar-bg { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 16px; gap: 2px; }
+    .bar-seg { height: 100%; }
+    .seg-green { background: var(--green); width: 33.33%; }
+    .seg-yellow { background: var(--yellow); width: 33.33%; }
+    .seg-red { background: var(--red); width: 33.33%; }
+
+    /* Sliders */
+    .slider-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .slider-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); }
+    .slider-val { font-weight: bold; }
+    .val-red { color: var(--red); }
+    .val-yellow { color: var(--yellow); }
+    input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: var(--bar-bg); outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; cursor: pointer; box-shadow: 0 0 4px rgba(0,0,0,0.5); }
+    
+    .divider { height: 1px; background: var(--border); margin: 12px 0; border-style: dashed; }
+    .note { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+
+    /* Code Output */
+    .code-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .code-header { display: flex; justify-content: space-between; align-items: center; }
+    .code-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .btn-copy { background: #21262d; border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .btn-copy:hover { background: #30363d; }
+    textarea { width: 100%; height: 250px; background: #0d1117; color: #79c0ff; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; resize: vertical; white-space: pre; }
+    textarea:focus { outline: none; border-color: var(--blue); }
+
+    /* Action Button */
+    .btn-make { background: linear-gradient(135deg, #1f6feb, #388bfd); color: #fff; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; box-shadow: 0 4px 12px rgba(31, 111, 235, 0.3); transition: transform 0.1s; }
+    .btn-make:hover { transform: translateY(-1px); }
+    .btn-make:active { transform: translateY(1px); }
+    .btn-make:disabled { background: var(--border); cursor: not-allowed; box-shadow: none; transform: none; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header-top">
+        <div class="icon">C</div>
+        <div class="title">
+            <h1>TOOL MAKE CODE CACHE</h1>
+            <p>CACHE_HITBOX — Đỏ & Vàng riêng + Chỉ báo an toàn</p>
+        </div>
+    </div>
+    <div><span class="badge-limit">LIMIT ±0.005</span></div>
+
+    <!-- Import File Input -->
+    <div class="import-panel" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="import-icon">📁</div>
+        <div class="import-text">Bỏ file gốc (cache_res...) vào đây</div>
+        <div class="import-sub">Hoặc bấm để chọn file</div>
+        <div class="file-name" id="fileNameDisplay">Chưa chọn file</div>
+        <input type="file" id="fileInput" onchange="handleFileSelect(event)">
+    </div>
+
+    <!-- Preview Area -->
+    <div class="preview-panel">
+        <div class="preview-header">
+            <div class="preview-title">🎯 Preview — Đỏ & Vàng riêng</div>
+            <button class="btn-reset" onclick="resetAll()">Reset cả 2</button>
+        </div>
+        <div class="preview-box">
+            <div class="char-wrapper">
+                <!-- SVG Hình Người Thật -->
+                <svg class="char-svg" viewBox="0 0 160 240" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="robeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#1c1c1c"/>
+                            <stop offset="50%" stop-color="#2a2a2a"/>
+                            <stop offset="100%" stop-color="#151515"/>
+                        </linearGradient>
+                        <linearGradient id="skinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#ffdfc4"/>
+                            <stop offset="100%" stop-color="#f0c8a0"/>
+                        </linearGradient>
+                        <linearGradient id="hairGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#3a2a1a"/>
+                            <stop offset="100%" stop-color="#1a0f05"/>
+                        </linearGradient>
+                        <linearGradient id="legGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#222"/>
+                            <stop offset="100%" stop-color="#0a0a0a"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M 60 40 Q 50 80 55 100 L 105 100 Q 110 80 100 40 Z" fill="url(#hairGrad)" />
+                    <rect x="72" y="60" width="16" height="18" fill="url(#skinGrad)" />
+                    <ellipse cx="80" cy="42" rx="22" ry="26" fill="url(#skinGrad)" />
+                    <path d="M 58 40 Q 58 15 80 15 Q 102 15 102 40 Q 95 25 80 25 Q 65 25 58 40 Z" fill="url(#hairGrad)" />
+                    <path d="M 55 40 Q 52 60 58 80 L 62 80 Q 58 60 60 40 Z" fill="url(#hairGrad)" />
+                    <path d="M 105 40 Q 108 60 102 80 L 98 80 Q 102 60 100 40 Z" fill="url(#hairGrad)" />
+                    <circle cx="72" cy="42" r="2" fill="#222" />
+                    <circle cx="88" cy="42" r="2" fill="#222" />
+                    <path d="M 75 52 Q 80 56 85 52" stroke="#c07060" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                    <ellipse cx="80" cy="32" rx="3" ry="2" fill="#e0b090" opacity="0.5" />
+                    <path d="M 60 78 Q 55 120 50 180 L 110 180 Q 105 120 100 78 Z" fill="url(#robeGrad)" />
+                    <path d="M 60 85 Q 45 110 48 140 L 55 140 Q 55 115 65 90 Z" fill="url(#skinGrad)" />
+                    <path d="M 100 85 Q 115 110 112 140 L 105 140 Q 105 115 95 90 Z" fill="url(#skinGrad)" />
+                    <path d="M 60 80 Q 45 105 47 130 L 57 130 Q 55 105 65 82 Z" fill="#1a1a1a" />
+                    <path d="M 100 80 Q 115 105 113 130 L 103 130 Q 105 105 95 82 Z" fill="#1a1a1a" />
+                    <path d="M 80 75 L 78 90 L 82 90 Z" fill="#d29922" />
+                    <rect x="70" y="100" width="20" height="4" fill="#d29922" opacity="0.8"/>
+                    <circle cx="80" cy="110" r="4" fill="#d29922" opacity="0.6"/>
+                    <text x="80" y="160" fill="#d29922" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">GOLD</text>
+                    <path d="M 60 180 L 58 230 L 72 230 L 72 180 Z" fill="url(#legGrad)" />
+                    <path d="M 100 180 L 102 230 L 88 230 L 88 180 Z" fill="url(#legGrad)" />
+                    <path d="M 55 225 L 75 225 L 75 235 L 55 235 Z" fill="#4a3020" rx="2"/>
+                    <path d="M 85 225 L 105 225 L 105 235 L 85 235 Z" fill="#4a3020" rx="2"/>
+                </svg>
+
+                <div class="hitbox hb-red" id="hb-red">
+                    <span class="hb-label" style="color:var(--red)">HEAD</span>
+                </div>
+                <div class="hitbox hb-yellow" id="hb-yellow">
+                    <span class="hb-label" style="color:var(--yellow); top:-15px; left:50%; transform:translateX(-50%)">BODY</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Red Controls (Head) -->
+    <div class="control-box red-box">
+        <div class="header">
+            <div class="header-left">
+                <div class="dot red"></div> VÒNG ĐỎ — Đầu
+            </div>
+            <div style="display:flex; gap:8px; align-items:center">
+                <span class="status-badge badge-danger" id="status-red">30% NGUY HIỂM</span>
+                <button class="btn-reset" onclick="resetGroup('red')">Reset</button>
+            </div>
+        </div>
+        <div class="bar-bg">
+            <div class="bar-seg seg-green"></div>
+            <div class="bar-seg seg-yellow"></div>
+            <div class="bar-seg seg-red"></div>
+        </div>
+        <div class="slider-row">
+            <div class="slider-label">Đỏ — X <span class="slider-val val-red" id="val-red-x">-0.00370</span></div>
+            <input type="range" id="slider-red-x" min="-0.005" max="0.005" step="0.0001" value="-0.0037" oninput="updateRed()">
+        </div>
+        <div class="slider-row">
+            <div class="slider-label">Đỏ — Y <span class="slider-val val-red" id="val-red-y">-0.00210</span></div>
+            <input type="range" id="slider-red-y" min="-0.005" max="0.005" step="0.0001" value="-0.0021" oninput="updateRed()">
+        </div>
+        <div class="slider-row">
+            <div class="slider-label">Đỏ — Z <span class="slider-val val-red" id="val-red-z">+0.00450</span></div>
+            <input type="range" id="slider-red-z" min="-0.005" max="0.005" step="0.0001" value="0.0045" oninput="updateRed()">
+        </div>
+        <div class="divider"></div>
+        <div class="slider-row">
+            <div class="slider-label"><span>🔴 Kích thước (Radius)</span> <span class="val-red" id="val-red-r">140%</span></div>
+            <input type="range" id="slider-red-r" min="70" max="140" step="1" value="140" oninput="updateRed()">
+        </div>
+        <div class="note">70% nhỏ · 100% gốc · 140% to</div>
+    </div>
+
+    <!-- Yellow Controls (Body) -->
+    <div class="control-box yellow-box">
+        <div class="header">
+            <div class="header-left">
+                <div class="dot yellow"></div> VÒNG VÀNG — Thân
+            </div>
+            <div style="display:flex; gap:8px; align-items:center">
+                <span class="status-badge badge-safe" id="status-yellow">90% AN TOÀN</span>
+                <button class="btn-reset" onclick="resetGroup('yellow')">Reset</button>
+            </div>
+        </div>
+        <div class="bar-bg">
+            <div class="bar-seg seg-green" style="width:80%"></div>
+            <div class="bar-seg seg-yellow" style="width:20%"></div>
+            <div class="bar-seg seg-red" style="width:0%"></div>
+        </div>
+        <div class="slider-row">
+            <div class="slider-label">Vàng — X <span class="slider-val val-yellow" id="val-yellow-x">+0.00000</span></div>
+            <input type="range" id="slider-yellow-x" min="-0.005" max="0.005" step="0.0001" value="0" oninput="updateYellow()">
+        </div>
+        <div class="slider-row">
+            <div class="slider-label">Vàng — Y <span class="slider-val val-yellow" id="val-yellow-y">+0.00000</span></div>
+            <input type="range" id="slider-yellow-y" min="-0.005" max="0.005" step="0.0001" value="0" oninput="updateYellow()">
+        </div>
+        <div class="slider-row">
+            <div class="slider-label">Vàng — Z <span class="slider-val val-yellow" id="val-yellow-z">+0.00000</span></div>
+            <input type="range" id="slider-yellow-z" min="-0.005" max="0.005" step="0.0001" value="0" oninput="updateYellow()">
+        </div>
+        <div class="divider"></div>
+        <div class="slider-row">
+            <div class="slider-label"><span>🟡 Kích thước (Radius)</span> <span class="val-yellow" id="val-yellow-r">100% (gốc)</span></div>
+            <input type="range" id="slider-yellow-r" min="70" max="140" step="1" value="100" oninput="updateYellow()">
+        </div>
+        <div class="note">70% nhỏ · 100% gốc · 140% to</div>
+    </div>
+
+    <!-- Action Button -->
+    <button class="btn-make" id="btnMake" onclick="makeCode()">🚀 MAKE CODE</button>
+
+    <!-- Code Output -->
+    <div class="code-panel">
+        <div class="code-header">
+            <div class="code-title">📋 CODE — Kết quả (Xem trước dạng Text)</div>
+            <button class="btn-copy" onclick="copyCode()">Sao chép tất cả</button>
+        </div>
+        <textarea id="codeOutput" readonly placeholder="Kết quả sau khi xử lý sẽ hiện ở đây (dạng text)..."></textarea>
+    </div>
+</div>
+
+<script>
+    let state = {
+        red: { x: -0.0037, y: -0.0021, z: 0.0045, r: 140 },
+        yellow: { x: 0, y: 0, z: 0, r: 100 }
+    };
+
+    let originalFileName = "";
+    let originalFileBuffer = null; // Uint8Array
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+
+    function handleFileSelect(event) {
+        if (event.target.files.length) handleFile(event.target.files[0]);
+    }
+
+    function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            originalFileName = file.name;
+            originalFileBuffer = new Uint8Array(e.target.result);
+            fileNameDisplay.innerText = "Đã tải: " + file.name;
+            document.getElementById('btnMake').disabled = false;
+            
+            // Kiểm tra xem file có phải là text thuần hay không (dựa vào header hoặc thử decode)
+            let isText = true;
+            // Nếu 100 bytes đầu tiên có nhiều byte 0 hoặc ký tự lạ, khả năng cao là binary
+            let head = originalFileBuffer.slice(0, 100);
+            let nonPrintable = 0;
+            for (let i = 0; i < head.length; i++) {
+                if (head[i] < 9 || (head[i] > 13 && head[i] < 32)) nonPrintable++;
+            }
+            if (nonPrintable > 10) isText = false; // Có vẻ là binary bundle
+
+            if (isText) {
+                document.getElementById('codeOutput').value = "// File nhận diện là TEXT. Bấm MAKE để vá trực tiếp bằng Regex.";
+            } else {
+                document.getElementById('codeOutput').value = "// File nhận diện là BINARY (Unity bundle).\n// Bấm MAKE để tìm chuỗi JSON nhúng, vá dữ liệu và xuất file giữ nguyên định dạng.";
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function updateRed() {
+        state.red.x = parseFloat(document.getElementById('slider-red-x').value);
+        state.red.y = parseFloat(document.getElementById('slider-red-y').value);
+        state.red.z = parseFloat(document.getElementById('slider-red-z').value);
+        state.red.r = parseInt(document.getElementById('slider-red-r').value);
+
+        document.getElementById('val-red-x').innerText = formatVal(state.red.x);
+        document.getElementById('val-red-y').innerText = formatVal(state.red.y);
+        document.getElementById('val-red-z').innerText = formatVal(state.red.z);
+        document.getElementById('val-red-r').innerText = state.red.r + "%";
+
+        const hb = document.getElementById('hb-red');
+        const scale = state.red.r / 100;
+        hb.style.transform = `translate(${state.red.x * 800}px, ${state.red.y * 800}px) scale(${scale})`;
+        
+        const totalShift = Math.abs(state.red.x) + Math.abs(state.red.y) + Math.abs(state.red.z);
+        const statusEl = document.getElementById('status-red');
+        if (state.red.r > 120 || totalShift > 0.008) {
+            statusEl.innerText = (100 - (state.red.r - 70)) + "% NGUY HIỂM";
+            statusEl.className = 'status-badge badge-danger';
+        } else {
+            statusEl.innerText = "AN TOÀN";
+            statusEl.className = 'status-badge badge-safe';
+        }
+    }
+
+    function updateYellow() {
+        state.yellow.x = parseFloat(document.getElementById('slider-yellow-x').value);
+        state.yellow.y = parseFloat(document.getElementById('slider-yellow-y').value);
+        state.yellow.z = parseFloat(document.getElementById('slider-yellow-z').value);
+        state.yellow.r = parseInt(document.getElementById('slider-yellow-r').value);
+
+        document.getElementById('val-yellow-x').innerText = formatVal(state.yellow.x);
+        document.getElementById('val-yellow-y').innerText = formatVal(state.yellow.y);
+        document.getElementById('val-yellow-z').innerText = formatVal(state.yellow.z);
+        document.getElementById('val-yellow-r').innerText = state.yellow.r + "%";
+
+        const hb = document.getElementById('hb-yellow');
+        const scale = state.yellow.r / 100;
+        hb.style.transform = `translate(${state.yellow.x * 800}px, ${state.yellow.y * 800}px) scale(${scale})`;
+    }
+
+    function resetGroup(group) {
+        if (group === 'red') {
+            document.getElementById('slider-red-x').value = -0.0037;
+            document.getElementById('slider-red-y').value = -0.0021;
+            document.getElementById('slider-red-z').value = 0.0045;
+            document.getElementById('slider-red-r').value = 140;
+            updateRed();
+        } else {
+            document.getElementById('slider-yellow-x').value = 0;
+            document.getElementById('slider-yellow-y').value = 0;
+            document.getElementById('slider-yellow-z').value = 0;
+            document.getElementById('slider-yellow-r').value = 100;
+            updateYellow();
+        }
+    }
+
+    function resetAll() { resetGroup('red'); resetGroup('yellow'); }
+
+    function formatVal(val) {
+        let num = parseFloat(val);
+        let str = num.toFixed(5);
+        return (num >= 0 ? "+" : "") + str;
+    }
+
+    // Logic thay thế trên chuỗi JSON
+    function processJSONBlock(content, blockHeader, gender, isHead) {
+        const safeHeader = blockHeader.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Bắt toàn bộ block từ -MALE [DINH DAU] { ... }
+        const blockRegex = new RegExp(`(-${gender}\\s*${safeHeader}\\s*\\{[\\s\\S]*?\\n\\})`, 'g');
+        
+        return content.replace(blockRegex, (match) => {
+            let patched = match;
+            
+            // 1. Cập nhật Radius
+            const radiusMatch = patched.match(/"m_Radius":\s*([\d.E-]+)/);
+            if (radiusMatch) {
+                let baseRadius = parseFloat(radiusMatch[1]);
+                let percent = isHead ? state.red.r : state.yellow.r;
+                let newRadius = baseRadius * (percent / 100);
+                patched = patched.replace(/"m_Radius":\s*([\d.E-]+)/, `"m_Radius": ${newRadius.toFixed(9)}`);
+            }
+
+            // 2. Cập nhật Center (Delta)
+            const centerMatch = patched.match(/"m_Center":\s*\{\s*"x":\s*([\d.E-]+),\s*"y":\s*([\d.E-]+),\s*"z":\s*([\d.E-]+)\s*\}/);
+            if (centerMatch) {
+                let oldX = parseFloat(centerMatch[1]);
+                let oldY = parseFloat(centerMatch[2]);
+                let oldZ = parseFloat(centerMatch[3]);
+
+                let dx = isHead ? state.red.x : state.yellow.x;
+                let dy = isHead ? state.red.y : state.yellow.y;
+                let dz = isHead ? state.red.z : state.yellow.z;
+
+                let newX = oldX + dx;
+                let newY = oldY + dy;
+                let newZ = oldZ + dz;
+
+                // Căn lề lại JSON string
+                patched = patched.replace(
+                    /"m_Center":\s*\{\s*"x":\s*([\d.E-]+),\s*"y":\s*([\d.E-]+),\s*"z":\s*([\d.E-]+)\s*\}/,
+                    `"m_Center": {\n    "x": ${newX.toFixed(8)},\n    "y": ${newY.toFixed(9)},\n    "z": ${newZ.toFixed(9)}\n  }`
+                );
+            }
+            return patched;
+        });
+    }
+
+    function makeCode() {
+        if (!originalFileBuffer) return;
+
+        // Chuyển toàn bộ mảng byte sang chuỗi (Dùng latin1 để giữ nguyên từng byte)
+        // Cách này cho phép tìm và thay thế chuỗi trên file binary.
+        let rawStr = "";
+        const chunkSize = 8192;
+        for (let i = 0; i < originalFileBuffer.length; i += chunkSize) {
+            rawStr += String.fromCharCode.apply(null, originalFileBuffer.subarray(i, i + chunkSize));
+        }
+
+        let content = rawStr;
+
+        // Vá dữ liệu (4 blocks)
+        content = processJSONBlock(content, '[DINH DAU]', 'MALE', true);
+        content = processJSONBlock(content, '[DINH DAU]', 'FEMALE', true);
+        content = processJSONBlock(content, '[VUNG RONG HON]', 'MALE', false);
+        content = processJSONBlock(content, '[VUNG RONG HON]', 'FEMALE', false);
+
+        // Chuyển lại thành byte
+        let newBuffer = new Uint8Array(content.length);
+        for (let i = 0; i < content.length; i++) {
+            newBuffer[i] = content.charCodeAt(i) & 0xFF;
+        }
+
+        // Preview hiển thị (chỉ hiển thị nếu là text, còn binary thì báo choáng chỗ)
+        if (originalFileName.includes(".txt") || originalFileName.includes(".json")) {
+            document.getElementById('codeOutput').value = content;
+        } else {
+            document.getElementById('codeOutput').value = `// Đã vá file Binary: ${originalFileName}\n// Thay đổi:\n// Đỏ (Đầu) R:${state.red.r}% | X:${state.red.x} Y:${state.red.y} Z:${state.red.z}\n// Vàng (Thân) R:${state.yellow.r}% | X:${state.yellow.x} Y:${state.yellow.y} Z:${state.yellow.z}\n// Tải file bên dưới để lấy kết quả.`;
+        }
+
+        // Xuất file tải về
+        const blob = new Blob([newBuffer], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = originalFileName; // Giữ nguyên tên file gốc
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function copyCode() {
+        const ta = document.getElementById('codeOutput');
+        if (!ta.value || ta.value.startsWith("//")) {
+            alert('File binary không thể copy dạng text. Hãy tải file xuất ra!');
+            return;
+        }
+        ta.select();
+        document.execCommand('copy');
+        alert('Đã sao chép toàn bộ code!');
+    }
+
+    updateRed();
+    updateYellow();
+    document.getElementById('btnMake').disabled = true;
+</script>
+
+</body>
+</html>
